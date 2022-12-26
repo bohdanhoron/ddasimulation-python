@@ -124,7 +124,6 @@ if __name__ == '__main__':
     inc_wave = ElectricWave(E_0, 300, k, 1.21)
 
     print(inc_wave._get_normal_component(surface_vector=np.array([0, 0, 1])))
-    #print(inc_wave._get_tangential_component(surface_vector=np.array([0, 0, 1])))
     r_0 = np.array([10, 0, 1])
     print(inc_wave.local_value(r_0))
     print(inc_wave.local_vector(r_0))

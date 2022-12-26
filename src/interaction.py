@@ -6,6 +6,8 @@ from polarizability import polarizability, ellipsoid_polarizability
 
 from scipy.constants import speed_of_light
 
+import matplotlib.pyplot as plt
+
 def set_diagonal_elements(radius, part_eps: float, med_eps: float, *, a1=None, a2=None, a3=None) -> np.ndarray:
     """ sets values for diagonal elements of interaction matrix
     """
@@ -30,7 +32,8 @@ def set_nondiagonal_elements(r_i, r_j, k):
 
 
 def extinction_cross_section(incident_wave, polarization, k):
-    pass
+    coeff = k
+    return coeff*np.imag(np.sum([np.dot(np.conj(e), p) for e, p in zip(incident_wave, polarization)]))
 
 def scattering_cross_section():
     pass
@@ -68,32 +71,6 @@ def incident_light(coordinates):
     return incident_vector
 
 def solve_matrix(interaction_matrix, incident_light):
-# def solve_matrix(rs, coordinates, k, part_eps, med_eps):
-    
-    # interaction_matrix = np.ndarray([len(rs), len(rs), 3, 3])
-    # new_matrix = np.ndarray([3*len(rs), 3*len(rs)])
-    
-    # for i in range(len(rs)):
-    #     for j in range(len(rs)):
-    #         if i == j:
-    #             interaction_matrix[i][j] = set_diagonal_elements(rs[i], part_eps, med_eps)
-    #         else:
-    #             interaction_matrix[i][j] = set_nondiagonal_elements(coordinates[i], coordinates[j], k=k)
-
-
-    # new_matrix = np.ndarray([len(rs)*3, len(rs)*3])
-    # k = 0
-    # for i in range(len(rs)):
-    #     for line in range(3):
-    #         new_matrix[k] = np.concatenate(([interaction_matrix[i][j][line] for j in range(len(rs))]))
-    #         k += 1
-    
-    # incident_vector = []
-    # for point in coordinates:
-    #     incident_vector.append(incident_field.local_vector(point))
-
-    # incident_vector = np.asarray(incident_vector).reshape(len(rs)*3, 1)
-
     return np.linalg.solve(interaction_matrix, incident_light)
 
 if __name__=="__main__":
@@ -104,7 +81,6 @@ if __name__=="__main__":
     coordinates = np.genfromtxt(f'{home}/systems/dipoles.csv', skip_header=1, usecols=(0,1,2), delimiter=',')
     rs = np.genfromtxt(f'{home}/systems/dipoles.csv', skip_header=1, usecols=(3,4,5), delimiter=',')
     print(rs)
-    # part_eps = 1.2
     med_eps = 1.5
 
     incident_field = ElectricWave(np.array([1, 1, 0]), freq=300, k=np.array([0, 0, 1]), eps=med_eps)
@@ -113,32 +89,19 @@ if __name__=="__main__":
     part_eps['eps'] = part_eps['real_eps'] + 1j * part_eps['imag_eps']
     print(part_eps)
 
-    solution = []
+    extinction=[]
+    waves = []
     for freq, eps in zip(part_eps['freq'], part_eps['eps']):
+        solution = []
         k = freq / speed_of_light
+        waves.append(k)
 
         # solution.append(solve_matrix(rs, coordinates, k=k, part_eps=eps, med_eps=med_eps))
         solution.append(solve_matrix(interaction_matrix(rs, coordinates, k=k, part_eps=eps, med_eps=med_eps), incident_light=incident_light(coordinates)))
+        
+        extinction.append(-extinction_cross_section(np.reshape(incident_light(coordinates), (len(rs), 3)), np.reshape(solution, (len(rs), 3)), k=k))
 
+    print(np.reshape(incident_light(coordinates), (len(rs), 3)))
     
-    # print(solution)
-    # for i in range(len(rs)):
-    #     for j in range(len(rs)):
-    #         if i == j:
-    #             interaction_matrix[i][j] = set_diagonal_elements(rs[0], part_eps, med_eps)
-    #         else:
-    #             interaction_matrix[i][j] = set_nondiagonal_elements(coordinates[i], coordinates[j], k=3)
-
-    # # print(interaction_matrix)
-
-    # new_matrix = np.ndarray([len(rs)*3, len(rs)*3])
-    # k = 0
-    # for i in range(len(rs)):
-    #     for line in range(3):
-    #         new_matrix[k] = np.concatenate(([interaction_matrix[i][j][line] for j in range(len(rs))]))
-    #         k += 1
-
-    
-    # print(np.diagonal(new_matrix))
-
-    # incident_vector = np.asarray(incident_vector).reshape(len(rs)*3, 1)
+    plt.scatter(waves, extinction)
+    plt.show()
